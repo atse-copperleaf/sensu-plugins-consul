@@ -47,6 +47,10 @@ class MaintenanceStatus < Sensu::Plugin::Check::CLI
          long: '--node NODE',
          default: 'localhost'
 
+  option :token,
+         description: 'ACL token',
+         long: '--token ACL_TOKEN'
+
   # Get the maintenance data for the node from consul
   #
   def acquire_maintenance_data
@@ -69,6 +73,7 @@ class MaintenanceStatus < Sensu::Plugin::Check::CLI
   def run
     Diplomat.configure do |dc|
       dc.url = config[:consul]
+      dc.acl_token = config[:token]
     end
 
     data = acquire_maintenance_data

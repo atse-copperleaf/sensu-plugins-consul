@@ -63,6 +63,10 @@ class ServiceStatus < Sensu::Plugin::Check::CLI
          short: '-f',
          long: '--fail-if-not-found'
 
+  option :token,
+         description: 'ACL token',
+         long: '--token ACL_TOKEN'
+
   # Get the check data for the service from consul
   #
   def acquire_service_data
@@ -82,6 +86,12 @@ class ServiceStatus < Sensu::Plugin::Check::CLI
     end
   rescue Faraday::ConnectionFailed => e
     warning "Connection error occurred: #{e}"
+  rescue Diplomat::UnknownStatus => ex
+    if ex.message.include?(403)
+      critical %(ACL token is not authorized to access "#{config[:kv]}")
+    else
+      critical "Unhandled exception(#{e.class}) -- #{e.message}"
+    end
   rescue StandardError => e
     unknown "Exception occurred when checking consul service: #{e}"
   end
@@ -95,6 +105,7 @@ class ServiceStatus < Sensu::Plugin::Check::CLI
 
     Diplomat.configure do |dc|
       dc.url = config[:consul]
+      dc.acl_token = config[:token]
     end
 
     data = acquire_service_data
